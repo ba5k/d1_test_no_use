@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自走棋游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: black;
+            color: white;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .shop, .battlefield {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .shop-item {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .shop-item:hover {
+            background-color: #c5c5c5;
+        }
+
+        .player-panel, .opponent-panel {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .health {
+            color: red;
+        }
+
+        .gold {
+            color: orange;
+        }
+
+        .monster {
+            border: 1px solid #ddd;
+            padding: 5px;
+            margin-bottom: 5px;
+        }
+
+        .damage-animation {
+            color: red;
+            transition: color 0.3s;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 5px;
+            z-index: 1000;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="loading hidden">等待中...</div>
+    <div class="shop">
+        <h2>商品列表</h2>
+        <!-- 商品列表将在这里动态生成 -->
+        <div class="player-info">
+            <h3>你的信息</h3>
+            <div class="health">生命: 3</div>
+            <div class="gold">金币: 10 击破: 0</div>
+            <div class="monsters-list"></div>
+        </div>
+        <div class="opponent-info">
+            <h3>对手的信息</h3>
+            <div class="health">生命: 3</div>
+            <div class="gold">金币: 10 击破: 0</div>
+            <div class="monsters-list"></div>
+        </div>
+        <button onclick="startBattle()">开始战斗</button>
+        <br><br><a>注：游戏过程中请勿刷新和切屏避免中断...</a>
+    </div>
+    <div class="battlefield hidden">
+        <h2>战斗界面</h2>
+        <div class="player-panel">
+            <h3>你的怪物</h3>
+            <div class="monsters-list"></div>
+        </div>
+        <div class="opponent-panel">
+            <h3>对手的怪物</h3>
+            <div class="monsters-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+let monstersData = {};
+
+const level = parseInt(getQueryParameterByNameDefault('l') || '0');
+const itemParam = getQueryParameterByNameDefault('i') || '0'; // 默认为 'item'，如果没有提供参数
+fetch(`item${itemParam}.csv`)
+    .then(response => response.text())
+    .then(data => {
+        monstersData = parseCSV(data);
+        initializeShop();
+    });
+
+
+function parseCSV(data) {
+    const lines = data.trim().split('\n');
+    const result = {};
+    lines.forEach(line => {
+        const [name, life, attack, defense, speed, cost, special, englishName, weakness, weaknessCount] = line.split(',');
+        result[name] = {
+            name: name,
+            originalLife: parseInt(life),
+            currentLife: parseInt(life),
+            attack: parseInt(attack),
+            defense: parseInt(defense),
+            speed: parseInt(speed),
+            cost: parseInt(cost),
+            special: special === 'None' ? null : special,
+            englishName: englishName,
+            weakness,
+            weaknessCount: parseInt(weaknessCount)
+        };
+    });
+    return result;
+}
+
+function initializeShop() {
+    const shopDiv = document.querySelector('.shop');
+    Object.keys(monstersData).forEach(monsterName => {
+        const monster = monstersData[monsterName];
+        const monsterDiv = document.createElement('div');
+        monsterDiv.className = 'shop-item';
+        monsterDiv.innerText = `${monsterName} - 金币: ${monster.cost}, 生命: ${monster.originalLife}, 攻击: ${monster.attack}, 防御: ${monster.defense}, 速度: ${monster.speed}`;
+        monsterDiv.onclick = () => buyMonster(monsterName);
+        shopDiv.insertBefore(monsterDiv, shopDiv.children[1]);
+    });
+}
+
+function getQueryParameterByNameDefault(name, url = window.location.href) {
+    name = name.replace(/[[\]]/g, '\\$&');
+    const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+function getQueryParameterByName(name, url = window.location.href) {
+    name = name.replace(/[[\]]/g, '\\$&');
+    const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    
+    const value = decodeURIComponent(results[2].replace(/\+/g, ' '));
+    
+    // 验证参数值是否符合要求
+    if (/^[a-zA-Z0-9_]{2,16}$/.test(value)) {
+        return value;
+    } else {
+        return null;  // 或者返回空字符串：return '';
+    }
+}
+
+const playerName = getQueryParameterByName('u');
+const opponentName = getQueryParameterByName('o');
+let moneyPerRound = parseInt(getQueryParameterByNameDefault('m')) || 10;
+let initialHealth = parseInt(getQueryParameterByNameDefault('h')) || 3;
+let maxMonstersOnField = parseInt(getQueryParameterByNameDefault('n')) || 4;
+let roundNumber = 1;
+let playerGold = moneyPerRound;
+let opponentGold = moneyPerRound+level;
+let playerMonsters = [];
+let opponentMonsters = [];
+let playerHealth = initialHealth;
+let opponentHealth = initialHealth+level;
+let isFirstBattleRound = 0;
+let purchaseHistory = [];
+let playerMonstersLastLength = 0;
+let opponentMonstersLastLength = 0;
+let playerBreaks = 0;  // 玩家的击破数
+let opponentBreaks = 0;  // 对手的击破数
+
+function buyMonster(monsterName) {
+    if (playerGold >= monstersData[monsterName].cost && playerMonsters.length < maxMonstersOnField) {
+        playerGold -= monstersData[monsterName].cost;
+        
+        // 创建一个新的怪物实例
+        const monsterInstance = {
+            ...monstersData[monsterName],
+            currentLife: monstersData[monsterName].originalLife
+        };
+        playerMonsters.push(monsterInstance);
+        const monsterIndex = Object.keys(monstersData).indexOf(monsterName);
+        purchaseHistory.push(monsterIndex);
+        
+        updateShopUI();
+    } else {
+        alert("购买失败：金币不足或怪物数量已达上限！");
+    }
+}
+
+function updateShopUI() {
+    // 更新玩家和AI的金币以及玩家的血量
+    document.querySelector('.player-info .gold').innerText = '金币: ' + playerGold + '\n击破: ' + playerBreaks + '（每3击破自动兑换1金币）';
+    document.querySelector('.player-info .health').innerText = '生命: ' + playerHealth;
+    document.querySelector('.opponent-info .health').innerText = '生命: ' + opponentHealth;
+    document.querySelector('.opponent-info .gold').innerText = '金币: ' + opponentGold + '\n击破: ' + opponentBreaks;
+
+    // 更新回合数与玩家名
+    const shopTitle = document.querySelector('.shop h2');
+    shopTitle.innerText = `商品列表（第${roundNumber}回合）`;
+    if (playerName) {
+        const playerInfoHeader = document.querySelector('.player-info h3');
+        playerInfoHeader.innerText = `${playerName}的信息`;
+    }
+    if (opponentName) {
+        const opponentInfoHeader = document.querySelector('.opponent-info h3');
+        opponentInfoHeader.innerText = `${opponentName}的信息`;
+    }
+
+    // 显示玩家已购买的怪物列表
+    const playerMonstersList = document.querySelector('.player-info .monsters-list');
+    playerMonstersList.innerHTML = '';
+    playerMonsters.forEach(monster => {
+        const monsterDiv = document.createElement('div');
+        monsterDiv.className = 'monster';
+        monsterDiv.innerText = monster.name; // 使用monster.name代替monsterName
+        playerMonstersList.appendChild(monsterDiv);
+    });
+
+    // 显示对手已购买的怪物列表
+    const opponentMonstersList = document.querySelector('.opponent-info .monsters-list');
+    opponentMonstersList.innerHTML = ''; // 清空当前的怪物列表
+    opponentMonsters.forEach(monster => {
+        const monsterDiv = document.createElement('div');
+        monsterDiv.className = 'monster';
+        monsterDiv.innerText = monster.name; // 使用monster.name代替monsterName
+        opponentMonstersList.appendChild(monsterDiv);
+    });
+
+    // 显示怪物的购物列表
+    const shopList = document.querySelector('.shop .shop-list');
+    shopList.innerHTML = '';
+    for (let monsterName in monstersData) {
+        const monster = monstersData[monsterName];
+        const monsterDiv = document.createElement('div');
+        monsterDiv.className = 'shop-item';
+        monsterDiv.innerText = `${monsterName} - 价格: ${monster.cost}$ - 生命: ${monster.originalLife} 攻: ${monster.attack} 防: ${monster.defense} 速: ${monster.speed}`;
+        monsterDiv.addEventListener('click', () => buyMonster(monsterName));
+        shopList.appendChild(monsterDiv);
+    }
+}
+
+function startBattle() {
+    if (playerMonsters.length === 0) {
+        const proceedWithoutMonsters = confirm("如果不上场怪物直接战斗，将额外失去1点生命。您确定要继续吗？");
+        if (!proceedWithoutMonsters) {
+            return; // 如果玩家选择不继续，直接返回
+        }
+    }
+
+    document.querySelector('.shop').classList.add('hidden');
+    document.querySelector('.battlefield').classList.remove('hidden');
+    purchaseHistory.push(-1);
+
+    (async () => {
+        if (isVsPlayer()) {
+            const opponentExecutionCsv = await sendAndGetOpponentOperation();
+            if (opponentExecutionCsv) {
+                opponentChooseMonsters(opponentExecutionCsv);
+            } else {
+                return;
+            }
+        } else {
+            aiChooseMonsters();
+        }
+
+        if (playerMonsters.length === 0 && opponentMonsters.length > 0) {
+            playerHealth--; // 如果玩家没有怪物且对方有怪物，扣除玩家一点生命
+        }
+        if (playerMonsters.length > 0 && opponentMonsters.length === 0) {
+            opponentHealth--; // 如果对方玩家没有怪物且对方有怪物，扣除对方玩家一点生命
+        }
+
+        updateBattleUI();
+        battle();
+    })();
+}
+
+function isVsPlayer() {
+    return playerName && opponentName;
+}
+
+let waitingTime = 0;
+async function sendAndGetOpponentOperation() {
+    const queryString = `u=${playerName}&o=${opponentName}&t=${roundNumber}&e=${purchaseHistory.join(',')}`;
+    document.querySelector('.loading').classList.remove('hidden'); // 显示加载提示
+
+    try {
+        const response = await fetch(`/q?${queryString}`);
+        if (response.status === 202) {
+            waitingTime += 4; 
+            if (waitingTime >= (roundNumber === 1 ? 600 : 600)) {
+                alert("等待时间过长，对方玩家可能已掉线！");
+                resetGame();
+                return null;
+            }
+            return new Promise(resolve => {
+                setTimeout(async () => {
+                    const result = await sendAndGetOpponentOperation();
+                    resolve(result);
+                }, 4000);
+            });
+        } else if (response.status >= 300) {
+            document.querySelector('.loading').classList.add('hidden'); // 隐藏加载提示
+            alert("交互失败！可能由于已掉线或服务器维护！");
+            resetGame();
+            return null;
+        } else {
+            document.querySelector('.loading').classList.add('hidden'); // 隐藏加载提示
+            waitingTime = 0; // 重置等待时间
+            const data = await response.json();
+            return data.opponentExecutionCsv;
+        }
+    } catch (error) {
+        document.querySelector('.loading').classList.add('hidden'); // 隐藏加载提示
+        console.error("Error:", error);
+        document.querySelector('.loading').classList.add('hidden'); // 确保在出错时也隐藏加载提示
+        alert("交互失败！可能由于已掉线或服务器维护！");
+        return null;
+    }
+}
+
+function updateBattleUI() {
+    const playerMonstersList = document.querySelector('.player-panel .monsters-list');
+    playerMonstersList.innerHTML = '';
+    playerMonsters.forEach(monster => {
+        const monsterDiv = document.createElement('div');
+        monsterDiv.className = 'monster';
+        monsterDiv.innerText = monster.name + " (" + monster.currentLife + "/" + monster.originalLife + ")";
+        playerMonstersList.appendChild(monsterDiv);
+    });
+
+    const opponentMonstersList = document.querySelector('.opponent-panel .monsters-list');
+    opponentMonstersList.innerHTML = '';
+    opponentMonsters.forEach(monster => {
+        const monsterDiv = document.createElement('div');
+        monsterDiv.className = 'monster';
+        monsterDiv.innerText = monster.name + " (" + monster.currentLife + "/" + monster.originalLife + ")";
+        opponentMonstersList.appendChild(monsterDiv);
+    });
+}
+
+function opponentChooseMonsters(csv) {
+    const monsterNames = Object.keys(monstersData); // 获取所有怪物的名字
+    const actions = csv.split(',');
+    actions.forEach(action => {
+        const monsterName = monsterNames[action]; // 使用偏移量获取怪物的名字
+        if (action !== "-1" && opponentGold >= monstersData[monsterName].cost && opponentMonsters.length < maxMonstersOnField) {
+            opponentGold -= monstersData[monsterName].cost;
+            const monsterInstance = {
+                ...monstersData[monsterName],
+                currentLife: monstersData[monsterName].originalLife
+            };
+            opponentMonsters.push(monsterInstance);
+        }
+    });
+}
+
+function aiChooseMonsters() {
+    let attempts = 0; // 设置尝试次数
+    const maxAttempts = 30; // 最大尝试次数
+    let needRetainMoney = 0; // 保留的金币
+    if (opponentHealth >= playerHealth && opponentHealth > 1 && !(playerMonstersLastLength > 0 && monstersData[playerMonsters[0].name].cost >= 5) && !(playerMonstersLastLength >= 2 && monstersData[playerMonsters[0].name].cost + monstersData[playerMonsters[1].name].cost >= 6)) {
+        needRetainMoney = Math.min(Math.max(8, opponentGold - 2), (2 + Math.random() * 0.75) * (opponentHealth - playerHealth) + Math.random() * 3);
+    }
+    if ((playerMonstersLastLength >= 2 && monstersData[playerMonsters[0].name].cost + monstersData[playerMonsters[1].name].cost >= 6 || playerMonstersLastLength >= 1 && monstersData[playerMonsters[0].name].cost >= 5) && opponentHealth > 1 && opponentGold <= 13) {
+        needRetainMoney = opponentGold - 6;
+        // alert("出bug了");
+    }
+
+    // 如果对方有怪物且AI没有怪物，优先购买克制对方怪物的怪物
+    if (playerMonstersLastLength > 0 && opponentMonstersLastLength === 0) {
+        const opponentFirstMonster = playerMonsters[0];
+        const counterMonster0 = monstersData[opponentFirstMonster.name].weakness;
+        const counterMonsterCount = monstersData[opponentFirstMonster.name].weaknessCount;
+        const valuesArray = counterMonster0.split(';'); // 将CSV字符串分割成数组
+        const randomIndex = Math.floor(Math.random() * valuesArray.length);
+        const counterMonster = valuesArray[randomIndex];
+
+        for (let i = 0; i < counterMonsterCount; i++) {
+            if (opponentGold >= monstersData[counterMonster].cost && opponentMonsters.length < maxMonstersOnField) {
+                opponentGold -= monstersData[counterMonster].cost;
+                const monsterInstance = {
+                    ...monstersData[counterMonster],
+                    currentLife: monstersData[counterMonster].originalLife
+                };
+                opponentMonsters.push(monsterInstance);
+            }
+        }
+    }
+
+    while (opponentGold > 0 && opponentMonsters.length < maxMonstersOnField && attempts < maxAttempts) {
+        randomMonsterName = Object.keys(monstersData)[Math.floor(Math.random() * Object.keys(monstersData).length)];
+	if (opponentHealth < playerHealth || opponentHealth === 1) {
+            if (monstersData[randomMonsterName].cost < 7 &&  opponentMonsters.length === maxMonstersOnField - 3 && (opponentGold - monstersData[randomMonsterName].cost) > monstersData[randomMonsterName].cost + 10 && Math.random() > .1) {
+                continue;
+            }
+            if (monstersData[randomMonsterName].cost < 7 &&  opponentMonsters.length === maxMonstersOnField - 2 && (opponentGold - monstersData[randomMonsterName].cost) > monstersData[randomMonsterName].cost / 2 + 5 && Math.random() > .1) {
+                continue;
+            }
+            if (monstersData[randomMonsterName].cost < 7 && opponentMonsters.length === maxMonstersOnField - 1 && (opponentGold - monstersData[randomMonsterName].cost) > 0 && Math.random() > .1) {
+                continue;
+            }
+        }
+        if (opponentGold >= monstersData[randomMonsterName].cost + needRetainMoney) {
+            opponentGold -= monstersData[randomMonsterName].cost;
+
+            // 创建一个新的怪物实例
+            const monsterInstance = {
+                ...monstersData[randomMonsterName],
+                currentLife: monstersData[randomMonsterName].originalLife
+            };
+            opponentMonsters.push(monsterInstance);
+        }
+        attempts++; // 每次循环增加尝试次数
+    }
+}
+
+function battle() {
+    if (isFirstBattleRound === 0) {
+        updateBattleUI();
+        isFirstBattleRound++;
+        setTimeout(battle, 1500);
+        return;
+    }
+
+    if (playerMonsters.length === 0 && opponentMonsters.length === 0) {
+        alert("平局！");
+        resetBattle();
+        return;
+    }
+
+    if (playerMonsters.length === 0) {
+        playerHealth--;
+        alert("你输了本轮！");
+        updateBattleUI();
+        if (playerHealth <= 0) {
+            alert("你输了整场比赛！");
+            resetGame();
+            return;
+        }
+        resetBattle();
+        return;
+    }
+
+    if (opponentMonsters.length === 0) {
+        opponentHealth--;
+        alert("你赢了本轮！");
+        updateBattleUI();
+        if (opponentHealth <= 0) {
+            alert("你赢了整场比赛！");
+            resetGame();
+            return;
+        }
+        resetBattle();
+        return;
+    }
+    const playerMonsterDiv = document.querySelector('.player-panel .monsters-list .monster:first-child');
+    const opponentMonsterDiv = document.querySelector('.opponent-panel .monsters-list .monster:first-child');
+
+    // 真正战斗
+    const playerMonster = playerMonsters[0];
+    const opponentMonster = opponentMonsters[0];
+
+    const playerDamage = Math.max(1, playerMonster.attack - opponentMonster.defense);
+    const opponentDamage = Math.max(1, opponentMonster.attack - playerMonster.defense);
+
+    // 检查速度和伤害
+    if (playerMonster.speed > opponentMonster.speed && playerDamage >= opponentMonster.currentLife) {
+        // 玩家速度更快且能击败对手
+        opponentMonsters[0].currentLife -= playerDamage;
+    } else if (opponentMonster.speed > playerMonster.speed && opponentDamage >= playerMonster.currentLife) {
+        // 对手速度更快且能击败玩家
+        playerMonsters[0].currentLife -= opponentDamage;
+    } else {
+        // 正常战斗逻辑
+        playerMonsters[0].currentLife -= opponentDamage;
+        opponentMonsters[0].currentLife -= playerDamage;
+    }
+
+    // 遍历玩家的怪物列表
+    for (let i = 0; i < playerMonsters.length; i++) {
+        if (playerMonsters[i].currentLife <= 0) {
+            playerMonsters.splice(i, 1);  // 从列表中移除怪物
+            opponentBreaks++;  // 对手的击破数增加
+            i--;  // 调整索引，因为我们从数组中移除了一个元素
+            if (opponentBreaks % 3 === 0) {
+                opponentGold++;
+            }
+        }
+    }
+
+    // 遍历对手的怪物列表
+    for (let i = 0; i < opponentMonsters.length; i++) {
+        if (opponentMonsters[i].currentLife <= 0) {
+            opponentMonsters.splice(i, 1);  // 从列表中移除怪物
+            playerBreaks++;  // 玩家的击破数增加
+            i--;  // 调整索引，因为我们从数组中移除了一个元素
+            if (playerBreaks % 3 === 0) {
+                playerGold++;
+            }
+        }
+    }
+
+    // 闪烁效果
+    playerMonsterDiv.classList.add('damage-animation');
+    opponentMonsterDiv.classList.add('damage-animation');
+    setTimeout(() => {
+        playerMonsterDiv.classList.remove('damage-animation');
+        opponentMonsterDiv.classList.remove('damage-animation');
+    }, 300);
+
+    updateBattleUI();
+    setTimeout(battle, 1500);  // 每1.5秒进行一次战斗
+}
+
+function resetBattle() {
+    roundNumber++;
+    isFirstBattleRound = 0;
+    playerGold += moneyPerRound; // 新回合，玩家获得10金币
+    opponentGold += moneyPerRound+level; // 新回合，对手也获得10金币
+
+    // 重置玩家和对手怪物的生命值
+    playerMonsters.forEach(monster => {
+        monster.currentLife = monster.originalLife; // 使用currentLife属性
+    });
+    playerMonstersLastLength = playerMonsters.length;
+    opponentMonsters.forEach(monster => {
+        monster.currentLife = monster.originalLife; // 使用currentLife属性
+    });
+    opponentMonstersLastLength = opponentMonsters.length;
+    purchaseHistory = [];  // 重置购买历史
+    waitingTime = 0;       // 重置等待时间
+    document.querySelector('.shop').classList.remove('hidden');
+    document.querySelector('.battlefield').classList.add('hidden');
+    updateShopUI();
+}
+
+function resetGame() {
+    roundNumber = 1;
+    isFirstBattleRound = 0;
+    playerHealth = initialHealth;
+    opponentHealth = initialHealth+level;
+    playerGold = moneyPerRound;
+    opponentGold = moneyPerRound+level;
+    playerMonsters = [];
+    opponentMonsters = [];
+    purchaseHistory = [];  // 重置购买历史
+    waitingTime = 0;       // 重置等待时间
+    playerMonstersLastLength = 0;
+    playerMonstersLastLength = 0;
+    playerBreaks = 0;
+    opponentBreaks = 0;
+    document.querySelector('.shop').classList.remove('hidden');
+    document.querySelector('.battlefield').classList.add('hidden');
+    updateShopUI();
+}
+
+resetGame();
+
+</script>
+</body>
+</html>
+

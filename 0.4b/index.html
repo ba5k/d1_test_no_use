@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1v1自走棋小游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+    background-image: url('auto-zz.jpg'); /* 设置背景图片 */
+    background-size: cover; /* 确保背景图片充满整个屏幕 */
+    background-position: center; /* 使背景图片居中 */
+    background-repeat: no-repeat; /* 防止背景图片重复 */
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #555;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #777;
+        }
+        #friendForm {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        input {
+            margin: 5px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>1v1自走棋小游戏v0.4</h1>
+    <h3>人机练习</h3>
+    <button onclick="showInfo('欢迎！游戏规则非常简单：购买随从自动战斗，请留意默认规则下，每轮10金币，怪物数限制为4，战斗后的存活怪物自动满血'); window.location.href='auto-zz.html?i=1001'">第〇关</button>
+    <button onclick="showInfo('本关主要学习：兵种间存在克制关系'); window.location.href='auto-zz.html?i=1'">第一关</button>
+    <button onclick="showInfo('本关主要学习：当本该同时死亡时，速度高的一方可先攻击'); window.location.href='auto-zz.html?i=2'">第二关</button>
+    <button onclick="showInfo('本关主要学习：高手过招，一回合足矣'); window.location.href='auto-zz.html?i=3'">第三关</button>
+    <button onclick="showInfo('这是一个较难的AI多1血多1钱的挑战模式（请大胆尝试第一回合空场进行挑战）'); window.location.href='auto-zz.html?l=1'">第四关</button>
+    <button onclick="showInfo('这是一个极难的AI多2血多2钱的挑战模式'); window.location.href='auto-zz.html?l=2'">第五关</button>
+    <button onclick="showFriendForm()">好友对局</button>
+    <div id="friendForm">
+        <input type="text" id="playerName" placeholder="你的名字(3~9个英文字符)">
+        <input type="text" id="friendName" placeholder="好友名字(为空则对战AI)">
+        <button onclick="startFriendGame()">开始游戏</button>
+<!-- 提示信息 -->
+<div id="ruleDescription" style="display: none;">
+    <p>规则参数格式：双方玩家需设置相同</p>
+    <p>金币(10~20)-生命(2~7)-怪物(4~7)-卡池(1~3)</p>
+</div>
+
+<!-- 规则输入框 -->
+<input type="text" id="customRules" value="10-3-4-3" style="display: none;">
+
+<!-- 按钮 -->
+<button onclick="showCustomRules()">自定义规则</button>
+    </div>
+
+    <script>
+        function showCustomRules() {
+            document.getElementById('ruleDescription').style.display = 'block';
+            document.getElementById('customRules').style.display = 'block';
+            // 隐藏自定义规则按钮
+            event.target.style.display = 'none';
+        }
+
+        function startFriendGame() {
+            const playerName = document.getElementById('playerName').value;
+            const friendName = document.getElementById('friendName').value;
+            const customRules = document.getElementById('customRules').value;
+            const [m, h, n, i] = customRules.split('-');
+
+            // 验证参数范围
+            if (m >= 10 && m <= 20 && h >= 2 && h <= 7 && n >= 4 && n <= 7 && i >= 1 && i <= 3) {
+                window.location.href = `auto-zz.html?u=${playerName}&o=${friendName}&m=${m}&h=${h}&n=${n}&i=${i}`;
+            } else {
+                alert("请确保参数在有效范围内！");
+            }
+        }
+
+        function showFriendForm() {
+            document.getElementById('friendForm').style.display = 'flex';
+        }
+
+        function showInfo(message) {
+            alert(message);
+        }
+
+    </script>
+</body>
+</html>
+

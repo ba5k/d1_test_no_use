@@ -1,16 +1,18 @@
 如果把前端框架名理解为Java后端开发：
 
-  前端全家桶                    Java 全家桶
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  JavaScript/TypeScript    ←→   Java 语言
-  React                    ←→   Spring MVC
-  Vite                     ←→   Maven/Gradle
-  npm/pnpm                 ←→   Maven 依赖管理
-  node_modules             ←→   .m2/repository
-  package.json             ←→   pom.xml
-  recharts                 ←→   导入的 jar / ECharts-java / 报表库
-  shadcn/ui                ←→   UI 组件 jar
-  Tailwind CSS             ←→   无直接对应，CSS框架
+  | 前端                   | 类比 Java 后端 | 工程文件                                     | 主要关键字                                          |
+  |-----------------------|----------------|------------------------------------------|-------------------------------------------------------|
+  | JavaScript/TypeScript | Java 语言        | *.ts, *.tsx, tsconfig.json               | interface, type, : string, <T>                       |
+  | React                 | Spring MVC     | src/pages/*.tsx, src/components/*.tsx    | useState, useEffect, <Component />, props             |
+  | Vue                   | Spring MVC     | *.vue, src/views/, src/components/       | <template>, <script setup>, ref(), v-if, v-for, @click |
+  | Vite                  | Maven/Gradle   | vite.config.ts, index.html(根目录)          | defineConfig, import.meta.env                      |
+  | npm/pnpm              | Maven 依赖管理     | package.json, package-lock.json          | dependencies, devDependencies, scripts            |
+  | yarn                  | Maven 依赖管理     | package.json, yarn.lock                  | yarn add, yarn dev, yarn build                    |
+  | node_modules          | .m2/repository | node_modules/ 目录                         | （不直接编辑，自动生成）                              |
+  | package.json          | pom.xml        | package.json                             | "name", "version", "dependencies"                     |
+  | recharts              | ECharts-java   | src/components/*Chart.tsx                | <LineChart>, <BarChart>, dataKey, ResponsiveContainer |
+  | shadcn/ui             | UI 组件 jar      | src/components/ui/*.tsx, components.json | <Button>, <Card>, <Dialog>, @/components/ui/        |
+  | Tailwind CSS          | （CSS框架）        | tailwind.config.js, globals.css          | className="flex", bg-white, text-sm, p-4           |
 
 MCP：
 spec-workflow

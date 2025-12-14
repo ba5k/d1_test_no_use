@@ -1,0 +1,57 @@
+如果把前端框架名理解为Java后端开发：
+
+  前端全家桶                    Java 全家桶
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  JavaScript/TypeScript    ←→   Java 语言
+  React                    ←→   Spring MVC
+  Vite                     ←→   Maven/Gradle
+  npm/pnpm                 ←→   Maven 依赖管理
+  node_modules             ←→   .m2/repository
+  package.json             ←→   pom.xml
+  recharts                 ←→   导入的 jar / ECharts-java / 报表库
+  shadcn/ui                ←→   UI 组件 jar
+  Tailwind CSS             ←→   无直接对应，CSS框架
+
+MCP：
+spec-workflow
+自测不好用，即便付出了大量token，也失意，也瞎搞
+
+shadCN
+npx shadcn@latest mcp init --client claude
+
+列出所有registry
+再网上搜索仓库并把他们添加导mcp中
+npm create vite@latest netob-app -- --template react-ts
+npm install -D tailwindcss@^3 postcss autoprefixer
+npm install vite@^5.4.10 @vitejs/plugin-react@^4.3.3 --save-dev
+
+vim tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+
+npx tailwindcss init -p
+
+"iconLibrary": "lucide",
+"aliases": {
+  "components": "@/components",
+  "utils": "@/lib/utils",
+  "ui": "@/components/ui",
+  "lib": "@/lib",
+  "hooks": "@/hooks"
+},
+"registries": {
+  "@aceternity": "https://ui.aceternity.com/registry/{name}.json",
+  "@originui": "https://originui.com/r/{name}.json",
+  "@cult": "https://cult-ui.com/r/{name}.json",
+  "@kibo": "https://www.kibo-ui.com/r/{name}.json",
+  "@reui": "https://reui.io/r/{name}.json"
+}
